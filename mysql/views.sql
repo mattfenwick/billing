@@ -14,7 +14,7 @@ create view ignored_path as (
     time, 
     isstart
   from event 
-  where path regexp '(/vnmrsys/gshimlib/|/vnmrsys/exp|/vnmrj_3.2_A|/vnmrj_2.3_A)'
+  where path regexp '(/vnmrsys/gshimlib/|/vnmrsys/exp|/vnmrj_3\.2_A|/vnmrj_2\.3_A|BioPack\.dir)'
 );
 
 
@@ -27,7 +27,7 @@ create view v_wrong_number_of_events as (
     e.path, 
     count(*) as `count`
   from event e 
-  where e.path NOT regexp '(/vnmrsys/gshimlib/|/vnmrsys/exp|/vnmrj_3.2_A|/vnmrj_2.3_A)'
+  where e.path NOT regexp '(/vnmrsys/gshimlib/|/vnmrsys/exp|/vnmrj_3\.2_A|/vnmrj_2\.3_A|BioPack\.dir)'
   group by e.path 
   having count(*) != 2
 );
@@ -65,7 +65,7 @@ create view two_starts_or_two_stops as (
     on e1.path = e2.path AND
     e1.isstart = e2.isstart AND
     e1.id != e2.id
-  where e1.path NOT regexp '(/vnmrsys/gshimlib/|/vnmrsys/exp|/vnmrj_3.2_A|/vnmrj_2.3_A)'
+  where e1.path NOT regexp '(/vnmrsys/gshimlib/|/vnmrsys/exp|/vnmrj_3\.2_A|/vnmrj_2\.3_A|BioPack\.dir)'
 );
 
 -- ----------------------------------------------------------------------------
