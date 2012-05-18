@@ -1,53 +1,14 @@
-
 import json
-
-
-class Event(object):
-
-    def __init__(self, time, isStart):
-        self.time = time
-        self.isStart = isStart
-
-
-
-class Experiment(object):
-
-    def __init__(self, spectrometer, path): # do I need spectrometer and path?
-        self.spectrometer = spectrometer
-        self.path = path
-        self.events = []
-
-    def addEvent(self, event):
-        assert type(event) == 'Event' # probably doesn't run/compile
-        self.events.append(event)
-
-
-
-class NmrUsage(object):
-
-    def __init__(self, description):
-        self.experiments = {}
-        self.description = description
-
-#    def addExperiment(self, spectrometer, path):
-#        pass
-
-    def addEvent(self, spectrometer, path, event):
-        key = (spectrometer, path)
-        if not self.experiments.has_key(key):
-            self.experiments[key] = Experiment(spectrometer, path)
-        exp = self.experiments[key]
-        exp.addEvent(event)
-
-
-####################################
+import unittest
 
 
 class Tree(object):
     
-    def __init__(self, value):
+    def __init__(self, value, children = []):
         self.value = value
         self.children = {}
+        for (key, c) in children:
+            self.addChild(key, c)
 
     def addChild(self, key, child):
         if self.children.has_key(key):
@@ -98,6 +59,53 @@ class Tree(object):
             newTree.addChild(k, child)
         newTree.value = f(vals)
         return newTree
+
+
+
+class TreeTest(unittest.TestCase):
+
+    def setUp(self):
+        pass
+
+    @unittest.expectedFailure
+    def testAddChildDupeKey(self):
+        t = Tree(13)
+        t.addChild('hi', Tree(4))
+        t.addChild('hi', Tree(45))
+
+    @unittest.expectedFailure
+    def testAddChildBadType(self):
+        t = Tree(13)
+        t.addChild('hi', [])
+
+    def testAddChild(self):
+        t = Tree(13)
+        for x in range(20):
+            t.addChild(str(x), Tree(x))
+        self.assertTrue(True)
+
+    def testFoldl(self):
+        pass
+
+    def testApplySubTree(self):
+        pass
+
+    def testToJSON(self):
+        t = Tree(13, [('me', Tree(14))])
+        j = {'value': 13, 'children': {'me': {'value': 14, 'children': {}}}}
+        print '\n',t,'\n',j
+        self.assertTrue(t == j)
+
+    def testFromJSON(self):
+        pass
+
+    def testFmap(self):
+        pass
+
+
+def getSuite():
+    suite1 = unittest.TestLoader().loadTestsFromTestCase(TreeTest)
+    return unittest.TestSuite([suite1])
 
 
 
