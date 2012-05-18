@@ -8,10 +8,8 @@ def getDirs(l):
     if l[i] == '/':
       dirs.append(l[:i])
     i += 1
-  print dirs
-  if dirs[-1][-4:] != ".fid":
-    pass # raise ValueError("last directory must be a .fid")
-  return dirs[1:-1]
+  # print dirs
+  return dirs[1:-1] # ditch first (just spectrometer number) and last (mark doesn't want it)
 
 
 def munge(lines):

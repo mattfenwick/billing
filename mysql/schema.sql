@@ -49,6 +49,16 @@ CREATE  TABLE IF NOT EXISTS `marks_billing`.`event` (
 ENGINE = InnoDB;
 
 
+-- -----------------------------------------------------
+-- Table `marks_billing`.`interesting_paths`
+-- -----------------------------------------------------
+CREATE  TABLE IF NOT EXISTS `marks_billing`.`interesting_paths` (
+  `id` INT NOT NULL AUTO_INCREMENT ,
+  `path` VARCHAR(500) NOT NULL ,
+  PRIMARY KEY (`id`) )
+ENGINE = InnoDB;
+
+
 
 SET SQL_MODE=@OLD_SQL_MODE;
 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
