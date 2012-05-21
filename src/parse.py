@@ -1,6 +1,15 @@
 import model as m
 import sys
 import re
+import unittest
+
+
+class ParsedLine(object):
+    def __init__(self, path, time, isStart):
+        self.path = path
+        self.time = time
+        self.isStart = isStart
+
 
 # capture groups:
 # 0: filepath
@@ -37,35 +46,45 @@ def convertMonth(name):
 
 
 def parseLine(inline):
-    '''in: string
-       out:  list of fields, based on regex extraction'''
+    '''String -> ParsedLine'''
     m = lineregex.match(inline)
     if m is None or len(m.groups()) != 8:
         raise ValueError("bad line: " + inline)
     grps = m.groups()
-    fields = {
-      'path':     grps[0],
-      'time':     d.datetime(grps[6], month2num[grps[1]], grps[2], grps[3], grps[4], grps[5]),
-      'isStart':  False
-    }
+    mytime = d.datetime(grps[6], month2num[grps[1]], grps[2], grps[3], grps[4], grps[5])
+    myIsStart = False
     if grps[7] == 'Experiment started':
-        fields['isStart'] = True
-    return fields
+       myIsStart = True
+    pline = ParsedLine(path = grps[0], time = mytime, isStart = myIsStart)
+    return pline
 
 
-def parse(mystring):
+def parseFile(contents):
+    '''String -> [ParsedLine]'''
+    assert contents[-1] == '\n', 'file must end with a newline'
     mylines = mystring.split("\n") # or whatever newline is
-    return [parseLine(line) for line in mylines[:-1]] # skip the last one (presumably because it's empty??  test)
+    return [parseLine(line) for line in mylines[:-1]] # skip the last one because it's empty
 
 
-def parseAll(filecontents):
-    '''in: [(string, spectrometer name)]
-       out: NmrUsage'''
-    usage = m.NmrUsage()
-    for (fc, spec) in filecontents:
-        parsedLines = parse(fc)
-        for pl in parsedLines:
-            event = m.Event(pl['time'], pl['isStart'])
-            usage.addEvent(spec, pl['path'], event)
-    return usage
+####################################################################################
+
+
+class ParseTest(unittest.TestCase):
+
+    def setUp(self):
+        pass
+
+    @unittest.expectedFailure
+    def testConvertMonth(self):
+        self.assertTrue(False) # oddly, this passes ???
+
+    def testParseLine(self):
+        self.assertTrue(False)
+
+    def testParseFile(self):
+        self.assertTrue(False)
+
+def getSuite():
+    suite1 = unittest.TestLoader().loadTestsFromTestCase(ParseTest)
+    return unittest.TestSuite([suite1])
 

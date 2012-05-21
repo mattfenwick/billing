@@ -2,39 +2,80 @@ import json
 import unittest
 
 
+
 class Tree(object):
     
     def __init__(self, value, children = {}):
         self.setValue(value)
-        self.children = {}
+        self._children = {}
         for (key, c) in children.iteritems():
             self.addChild(key, c)
 
+    #### getters and setters
+
+    def hasChild(self, key):
+        '''Tree a -> String -> Bool'''
+        return self._children.has_key(key)
+
     def addChild(self, key, child):
-        '''Tree a -> String -> a -> Tree a'''
-        if self.children.has_key(key):
+        '''Tree a -> String -> Tree a -> Tree a'''
+        if self.hasChild(key):
             raise ValueError("already have key <%s>" % key)
         if type(child) != type(self):
             raise ValueError("bad type for Tree child: <%s>" % str(type(child)))
-        self.children[key] = child
+        self._children[key] = child
 
     def getChild(self, key):
         '''Tree a -> String -> Tree a'''
-        if self.children.has_key(key):
-            return self.children[key]
+        if self.hasChild(key):
+            return self._children[key]
         raise ValueError("Tree does not have key <%s>" % key)
+  
+    def getValue(self):
+        return self._value
+
+    def setValue(self, newValue):
+        self._value = newValue
+
+    def getChildren(self):
+        return self._children
+
+    #### traversal algorithms
 
     def fmap(self, f):
         '''Tree a -> (a -> b) -> Tree b'''
         newTree = Tree(f(self.getValue()))
-        for (key, treeNode) in self.children.iteritems():
+        for (key, treeNode) in self.getChildren().iteritems():
             newTree.addChild(key, treeNode.fmap(f))
         return newTree
+
+    def foldl(self, f, b):
+        '''Tree a -> (a -> b -> b) -> b -> b
+           I believe this is a left-fold based on the Haskell docs'''
+        result = b
+        for key in sorted(self.getChildren().keys()):
+            child = self.getChild(key)
+            result = child.foldl(f, result)
+        val = f(self.getValue(), result)
+        return val
+
+    def applySubTree(self, f):
+        '''Tree a -> ([a] -> a) -> Tree a'''
+        newTree = Tree(None)
+        vals = [self.getValue()]
+        for (k, v) in self.getChildren().iteritems():
+            child = v.applySubTree(f)
+            vals.append(child.getValue())
+            newTree.addChild(k, child)
+        newTree.setValue(f(vals))
+        return newTree
+
+    #### serialization/loading methods
 
     def toJSON(self):
         '''Tree a -> JSONObject'''
         cs = {}
-        for (k, v) in self.children.iteritems():
+        for (k, v) in self.getChildren().iteritems():
             cs[k] = v.toJSON()
         return {
             'value': self.getValue(), 
@@ -52,33 +93,8 @@ class Tree(object):
     def __repr__(self):
         return json.dumps(self.toJSON())
 
-    def foldl(self, f, b):
-        '''Tree a -> (a -> b -> b) -> b -> b
-           I believe this is a left-fold based on the Haskell docs'''
-        result = b
-        for key in sorted(self.children.keys()):
-            child = self.children[key]
-            result = child.foldl(f, result)
-        val = f(self.getValue(), result)
-        return val
 
-    def applySubTree(self, f):
-        '''Tree a -> ([a] -> a) -> Tree a'''
-        newTree = Tree(None)
-        vals = [self.getValue()]
-        for (k, v) in self.children.iteritems():
-            child = v.applySubTree(f)
-            vals.append(child.getValue())
-            newTree.addChild(k, child)
-        newTree.setValue(f(vals))
-        return newTree
-  
-    def getValue(self):
-        return self._value
-
-    def setValue(self, newValue):
-        self._value = newValue
-
+##################################################################
 
 
 class TreeTest(unittest.TestCase):

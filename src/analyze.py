@@ -1,21 +1,112 @@
 import unittest
 import model as m
+import re
 
 
-def prune(tree, f):
-    '''Tree a -> Maybe Tree a
-       remove nodes with f(value) == True and no children 
-         (or all children with f(childvalue) == False)'''
-    children = tree.getChildren()
-    newTree = m.Tree(tree.getValue())
-    for key in children:
-        child = children[key]
-        pruned = prune(child, f)
-        if pruned is not None:
-            newTree.addChild(key, child)
-    if not f(newTree.getValue()) and len(newTree.getChildren()) == 0:
-        return None
-    return newTree
+
+def addEvent(tree, dirs, event):
+    '''Tree [Event] -> [String] -> Event -> Tree [Event]'''
+    t = tree
+
+    # traverse the tree, moving deeper and deeper
+    for x in dirs:
+        if not t.hasChild(x):
+            # we just need an empty child -- empty of events & of children
+            t.addChild(x, m.Tree([]))
+        t = t.getChild(x)
+
+    # append the event to the event list
+    t.setValue(t.getValue().append(event))
+    return tree
+
+
+def splitPath(path):
+    '''String -> [String]'''
+    return path.split("/")
+
+
+pathMatcher = re.compile('(?:vnmrsys/exp|vnmrsys/gshimlib/|vnmrj_2.3_A|vnmrj_3.2_A|BioPack.dir')
+def pathIsOkay(path):
+    '''String -> Bool'''
+    isOkay = not pathMatcher.match(path)
+    if not isOkay:
+        myLogger.info("discarding path: <%s>" % path)
+    return isOkay
+
+
+def filterPaths(pLines):
+    '''[ParsedLine] -> [ParsedLine]'''
+    return [p for p in pLines if pathIsOkay(p.path)]
+
+
+def makeTree(pLines):
+    '''[ParsedLine] -> Tree [Event]'''
+    tree = m.Tree() # ?? args?
+    okay = filterPaths(pLines)
+    for p in okay:
+        dirs = splitPath(p.path)
+        event = m.Event(p.time, p.isStart) # arg order?
+        addEvent(tree, dirs, event)
+    return tree
+
+
+def makeModel(files):
+    '''Map String String -> Tree Event'''
+    tree = m.Tree("root") # value ??
+    for spec in files:
+        parsedLines = parse.parseFile(files[spec])
+        specTree = bm.makeTree(parsedLines)
+        tree.addChild(spec, specTree)
+    return tree
+
+
+####################################################################################
+
+
+
+def removeJunk(events):
+    '''[Event] -> [Event]'''
+    if len(events) != 2:
+        myLogger.info('removing events: <%s>' % str(events))
+        return []
+    elif events[0].isStart == events[1].isStart:
+        myLogger.info('removing events: <%s>' % str(events))
+        return []
+    else:
+        myLogger.info('keeping events: <%s>' % str(events))
+        return events
+
+
+def calculateInterval(events):
+    if events[0].isStart:
+        start, stop = events
+    else:
+        stop, start = events
+    assert stop.isStart != start.isStart, "must have exactly one start and one stop"
+    return stop.time - start.time
+
+
+def sumIntervals(intervals):
+    '''[datetime.timedelta] -> datetime.timedelta'''
+    total = timedelta()
+    for i in intervals:
+        total = total + i
+    return total
+
+
+def analyzeTree(tree):
+    '''Tree Event -> Tree Interval'''
+
+    # remove junk
+    t1 = tree.fmap(removeJunk)
+
+    # Tree Event -> Tree timedelta
+    t2 = t1.fmap(calculateInterval)
+
+    # sum subtrees: Tree timedelta -> Tree timedelta
+    t3 = t2.applySubTree(sumIntervals)
+
+    return t2
 
 
 ####################################################################################
@@ -36,17 +127,29 @@ class AnalyzeTest(unittest.TestCase):
         })
 
     def testTestPruneSubTree(self):
-        pruned = prune(self.tree, lambda x: x < 100)
-        self.assertTrue(pruned)
-        self.assertEqual(len(pruned.getChildren()), 2)
-        self.assertFalse(pruned.hasChild('sub1'))
-        print pruned
+        self.assertFalse(True)
 
     def testPruneSingleNode(self):
-        pruned = prune(self.tree, lambda x: x != 0)
-        self.assertTrue(pruned)
-        self.assertEqual(len(pruned.getChildren()), 2)
+        self.assertFalse(True)
+
+
+class BuildTest(unittest.TestCase):
+
+    def setUp(self):
+        pass
+
+    @unittest.expectedFailure
+    def testAddEvent(self):
+        self.assertTrue(False) # oddly, this passes ???
+
+    def testSplitPath(self):
+        self.assertTrue(False)
+
+    def testMakeTree(self):
+        self.assertTrue(False)
+
 
 def getSuite():
     suite1 = unittest.TestLoader().loadTestsFromTestCase(AnalyzeTest)
-    return unittest.TestSuite([suite1])
+    suite2 = unittest.TestLoader().loadTestsFromTestCase(BuildTest)
+    return unittest.TestSuite([suite1, suite2])
