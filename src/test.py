@@ -5,7 +5,7 @@ import analyze as am
 
 
 def runTests():
-    testModules = [parse, model]#, parse, bm]
+    testModules = [parse, model, am]
     mySuite = unittest.TestSuite([module.getSuite() for module in testModules])
     unittest.TextTestRunner(verbosity=2).run(mySuite)
 #    unittest.main()

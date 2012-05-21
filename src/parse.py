@@ -74,14 +74,14 @@ def parseFile(contents):
 class ParseTest(unittest.TestCase):
 
     def setUp(self):
-        self.text = '''./vnmrj_2.3_A/fidlib/auto_2007.05.23/ethylindanone_004/Roesy1d_01.fid/log:Thu May 24 10:20:01 2007: Acquisition complete
+        self.text = '''./vnmrj_2.3_A/fidlib/auto_2007.05.23/heavensabove_004/Roesy1d_01.fid/log:Thu May 24 10:20:01 2007: Acquisition complete
 ./vnmrj_2.3_A/fidlib/auto_2007.05.23/tempC.fid/log:Wed May 23 16:07:48 2007: Experiment started
 ./vnmrj_2.3_A/fidlib/auto_2007.05.23/tempC.fid/log:Wed May 23 16:16:44 2007: Acquisition complete
-./vnmrj_2.3_A/fidlib/auto_2007.05.23/ethylindanone_001/Cosy_01.fid/log:Wed May 23 16:25:40 2007: Experiment started
-./vnmrj_2.3_A/fidlib/auto_2007.05.23/ethylindanone_001/Cosy_01.fid/log:Wed May 23 16:36:32 2007: Acquisition complete
+./vnmrj_2.3_A/fidlib/auto_2007.05.23/whateverd_001/Cosy_01.fid/log:Wed May 23 16:25:40 2007: Experiment started
+./vnmrj_2.3_A/fidlib/auto_2007.05.23/notimpor_001/Cosy_01.fid/log:Wed May 23 16:36:32 2007: Acquisition complete
 '''
-        self.line1 = '''./vnmrj_2.3_A/fidlib/auto_2007.05.23/ethylindanone_001/Hsqcad_01.fid/log:Thu May 24 02:23:57 2007: Acquisition complete'''
-        self.line2 = '''./vnmrj_2.3_A/fidlib/auto_2007.05.23/ethylindanone_001/Hmqctoxy_01.fid/log:Wed May 23 23:13:35 2007: Experiment started'''
+        self.line1 = '''./vnmrj_2.3_A/fidlib/auto_2007.05.23/blahblah_001/Hsqcad_01.fid/log:Thu May 24 02:23:57 2007: Acquisition complete'''
+        self.line2 = '''./vnmrj_2.3_A/fidlib/auto_2007.05.23/abcdefg_001/Hmqctoxy_01.fid/log:Wed May 23 23:13:35 2007: Experiment started'''
 
     def testConvertMonth(self):
         ms = [convertMonth(q) for q in ['Apr', 'Feb', 'Dec']]

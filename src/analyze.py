@@ -1,6 +1,10 @@
 import unittest
 import model as m
 import re
+import logging
+
+
+myLogger = logging.getLogger('analyze')
 
 
 
@@ -25,10 +29,10 @@ def splitPath(path):
     return path.split("/")
 
 
-pathMatcher = re.compile('(?:vnmrsys/exp|vnmrsys/gshimlib/|vnmrj_2.3_A|vnmrj_3.2_A|BioPack.dir')
+pathMatcher = re.compile('(?:vnmrsys/exp|vnmrsys/gshimlib/|vnmrj_2\.3_A|vnmrj_3\.2_A|BioPack\.dir)')
 def pathIsOkay(path):
     '''String -> Bool'''
-    isOkay = not pathMatcher.match(path)
+    isOkay = not bool(pathMatcher.search(path))
     if not isOkay:
         myLogger.info("discarding path: <%s>" % path)
     return isOkay
@@ -136,11 +140,23 @@ class AnalyzeTest(unittest.TestCase):
 class BuildTest(unittest.TestCase):
 
     def setUp(self):
-        pass
+        self.paths = [
+            './what/vnmrsys/exp27/whatisthis/log',
+            './dunno/vnmrsys/BioPack.dir/backups/Something_2009-09-09_09:09/something_fine.fid/log',
+            './vnmrj_2.3_A/fidlib/auto_2007.05.23/something_001/Proton_01.fid/log',
+            './vnmrj_3.2_A/biopack/fidlib/AutoTripRes2D/meh.fid/log',
+            './hi/vnmrsys/data/hithere/ADA/dunno.fid/log',
+            './hello/vnmrsys/gshimlib/shimmaps/wowthisislong.fid/log',
+            './myname/vnmrsys/data/isme/ADA/andhtistoo.fid/log'
+        ]
 
     @unittest.expectedFailure
     def testAddEvent(self):
         self.assertTrue(False) # oddly, this passes ???
+
+    def testPathIsOkay(self):
+        rs = map(pathIsOkay, self.paths)
+        self.assertEqual(rs, [False, False, False, False, True, False, True])
 
     def testSplitPath(self):
         self.assertTrue(False)
