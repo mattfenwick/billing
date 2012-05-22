@@ -2,6 +2,10 @@ import unittest
 import model as m
 import re
 import logging
+import datetime
+# just for ???
+import yaml
+import parse
 
 
 myLogger = logging.getLogger('analyze')
@@ -20,7 +24,7 @@ def addEvent(tree, dirs, event):
         t = t.getChild(x)
 
     # append the event to the event list
-    t.setValue(t.getValue().append(event))
+    t.setValue(t.getValue() + [event])
     return tree
 
 
@@ -45,7 +49,7 @@ def filterPaths(pLines):
 
 def makeTree(pLines):
     '''[ParsedLine] -> Tree [Event]'''
-    tree = m.Tree() # ?? args?
+    tree = m.Tree([]) # ?? args?
     okay = filterPaths(pLines)
     for p in okay:
         dirs = splitPath(p.path)
@@ -82,6 +86,9 @@ def removeJunk(events):
 
 
 def calculateInterval(events):
+    '''(Datetime, Datetime) -> Interval'''
+    if len(events) == 0:
+        return datetime.timedelta()
     if events[0].isStart:
         start, stop = events
     else:
@@ -92,7 +99,7 @@ def calculateInterval(events):
 
 def sumIntervals(intervals):
     '''[datetime.timedelta] -> datetime.timedelta'''
-    total = timedelta()
+    total = datetime.timedelta()
     for i in intervals:
         total = total + i
     return total
@@ -110,7 +117,10 @@ def analyzeTree(tree):
     # sum subtrees: Tree timedelta -> Tree timedelta
     t3 = t2.applySubTree(sumIntervals)
 
-    return t2
+#    q = lambda xs: [{'time': str(x.time), 'isStart': x.isStart} for x in xs]
+#    print yaml.dump(tree.fmap(q).toJSON()), '\n', yaml.dump(t1.fmap(q).toJSON()), '\n', yaml.dump(t2.fmap(lambda x: x.total_seconds()).toJSON()), '\n', yaml.dump(t3.fmap(lambda x: x.total_seconds()).toJSON())
+
+    return t3
 
 
 ####################################################################################
@@ -119,7 +129,7 @@ def analyzeTree(tree):
 class AnalyzeTest(unittest.TestCase):
 
     def setUp(self):
-        self.tree = m.Tree(14, {
+        self.numtree = m.Tree(14, {
             'sub1': m.Tree(101, {
                'a': m.Tree(104),
                'b': m.Tree(210),
@@ -129,12 +139,57 @@ class AnalyzeTest(unittest.TestCase):
             'sub2': m.Tree(0), 
             'sub3': m.Tree(-27)
         })
+        self.d = d = datetime.datetime
+        self.timetree = m.Tree([m.Event(d(2012,3,11), True), m.Event(d(2012,3,11,1,0,0), False)], {  # 1 hour
+            'sub1': m.Tree([m.Event(d(2012,3,12,8), True), m.Event(d(2012,3,12,8,4), False)], {      # 4 minutes
+               'a': m.Tree([m.Event(d(2012,3,11), True)]),                               # should be filtered
+               'b': m.Tree([]),                                                          # should be filtered
+               'c': m.Tree([m.Event(d(2012,3,11), True), m.Event(d(2012,4,4), True)]),   # should be filtered
+               'd': m.Tree([m.Event(d(2012,3,11), True), m.Event(d(2012,3,11,0,0,27), False)]),      # 27 seconds
+            }), 
+            'sub2': m.Tree([m.Event(d(2012,4,2), True), m.Event(d(2012,4,4), False)]),               # 2 days
+            'sub3': m.Tree([m.Event(d(2012,3,11), False), m.Event(d(2012,3,11), True)])              # 0
+        })
+        self.subtimetree = self.timetree.getChild('sub2')
 
-    def testTestPruneSubTree(self):
-        self.assertFalse(True)
+    def testRemoveJunk(self):
+        my = m.Event(None, None)
+        d = self.d
+        e1, e2, e3, e4 = (
+            [m.Event(None, None)], 
+            [my, my, my, my],
+            [m.Event(d(2012,3,11), True), m.Event(d(2012,4,4), True)], 
+            [m.Event(d(2012,8,7), True), m.Event(d(2012,9,1), False)]
+        )
+        # case 1:  not 2 events
+        self.assertEqual([], removeJunk(e1))
+        # case 2:  two stops or two starts
+        self.assertEqual([], removeJunk(e2))
+        self.assertEqual([], removeJunk(e3))
+        # case 3:  acceptable
+        self.assertEqual(e4, removeJunk(e4))
 
-    def testPruneSingleNode(self):
-        self.assertFalse(True)
+    def testCalculateInterval(self):
+        i = calculateInterval([
+            m.Event(self.d(2012, 4, 1, 10, 0, 0), False),
+            m.Event(self.d(2012, 4, 1, 8, 0, 0), True)
+        ])
+        self.assertEqual(i.total_seconds(), 7200)
+
+    def testSumIntervals(self):
+        t = datetime.timedelta
+        ints = [t(4, 78), t(5, -12), t(0, 22334)]
+        total = sumIntervals(ints)
+        self.assertEqual(total.total_seconds(), 800000)
+
+    def testAnalyzeTree(self):
+        subtree = analyzeTree(self.subtimetree)
+        self.assertEqual(subtree.getValue(), datetime.timedelta(2))
+
+        tree = analyzeTree(self.timetree)
+        i = tree.getValue()
+        self.assertEqual(i.days, 2)
+        self.assertEqual(i.total_seconds(), 3600 + 240 + 27 + 3600 * 48)
 
 
 class BuildTest(unittest.TestCase):
@@ -150,19 +205,35 @@ class BuildTest(unittest.TestCase):
             './myname/vnmrsys/data/isme/ADA/andhtistoo.fid/log'
         ]
 
-    @unittest.expectedFailure
-    def testAddEvent(self):
-        self.assertTrue(False) # oddly, this passes ???
+    def testAddEventEmptyPath(self):
+        tree = m.Tree([13])
+        addEvent(tree, [], 14)
+        self.assertEqual([13, 14], tree.getValue())
+
+    def testAddEventNonEmptyPath(self):
+        tree = m.Tree(13)
+        addEvent(tree, ["abc", "haha", "path"], m.Tree(14))
+        addEvent(tree, ["abc", "haha", "what?"], 37)
+        self.assertEqual([37], tree.getChild("abc").getChild("haha").getChild("what?").getValue())
+        self.assertEqual([], tree.getChild("abc").getChild("haha").getValue())
+        self.assertEqual(2, len(tree.getChild("abc").getChild("haha").getChildren()))
 
     def testPathIsOkay(self):
         rs = map(pathIsOkay, self.paths)
         self.assertEqual(rs, [False, False, False, False, True, False, True])
 
     def testSplitPath(self):
-        self.assertTrue(False)
+        sp = splitPath(self.paths[0])
+        self.assertEqual(sp[:4], [".", "what", "vnmrsys", "exp27"])
+        sp2 = splitPath(self.paths[4])
+        self.assertEqual(sp2[-4:], ["hithere", "ADA", "dunno.fid", "log"])
 
     def testMakeTree(self):
-        self.assertTrue(False)
+        p = parse.ParsedLine
+        plines = [p("abcd/def", None, True), p("ab/cd", 37, False)]
+        tree = makeTree(plines)
+        self.assertEqual(tree.getChild("ab").getChild("cd").getValue()[0].time, 37) 
+        self.assertTrue(tree.getChild("abcd").hasChild("def"))
 
 
 def getSuite():

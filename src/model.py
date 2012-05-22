@@ -3,6 +3,13 @@ import unittest
 
 
 
+class Event(object):
+
+    def __init__(self, time, isStart):
+        self.time = time
+        self.isStart = isStart
+
+
 class Tree(object):
     
     def __init__(self, value, children = {}):
