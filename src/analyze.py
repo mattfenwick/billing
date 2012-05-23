@@ -59,11 +59,11 @@ def makeTree(pLines):
 
 
 def makeModel(files):
-    '''Map String String -> Tree Event'''
-    tree = m.Tree("root") # value ??
+    '''Map String String -> Tree [Event]'''
+    tree = m.Tree([])
     for spec in files:
         parsedLines = parse.parseFile(files[spec])
-        specTree = bm.makeTree(parsedLines)
+        specTree = makeTree(parsedLines)
         tree.addChild(spec, specTree)
     return tree
 
@@ -204,6 +204,20 @@ class BuildTest(unittest.TestCase):
             './hello/vnmrsys/gshimlib/shimmaps/wowthisislong.fid/log',
             './myname/vnmrsys/data/isme/ADA/andhtistoo.fid/log'
         ]
+        ps = [
+            'not/me/0003.fid/log:Thu Aug 20 18:55:12 2009: Experiment started',
+            'not/me/0003.fid/log:Thu Aug 20 19:04:08 2009: Acquisition complete',
+            'ab/0002.fid/log:Thu Aug 20 18:16:47 2009: Experiment started',
+            'not/me/0002.fid/log:Thu Aug 20 18:55:12 2009: Acquisition complete',
+            'not/me/0008.fid/log:Thu Aug 20 19:52:59 2009: Experiment started',
+            'second/vnmrsys/dba/0008.fid/log:Thu Aug 20 20:25:56 2009: Acquisition complete',
+            'myname/vnmrsys/abc/def/01.fid/log:Thu Aug 20 18:16:12 2009: Experiment started',
+        ]
+        self.pathdict = {
+            '800.txt': '\n'.join(ps[0:3]) + '\n',
+            'hmm???':  '\n'.join(ps[2:5]) + '\n',
+            'third':   '\n'.join(ps[-4:]) + '\n'
+        }
 
     def testAddEventEmptyPath(self):
         tree = m.Tree([13])
@@ -234,6 +248,12 @@ class BuildTest(unittest.TestCase):
         tree = makeTree(plines)
         self.assertEqual(tree.getChild("ab").getChild("cd").getValue()[0].time, 37) 
         self.assertTrue(tree.getChild("abcd").hasChild("def"))
+
+    def testBuildModel(self):
+        tree = makeModel(self.pathdict)
+#        print yaml.dump(tree.toJSON())
+        self.assertTrue(tree.getChild('third').getChild('myname').getChild('vnmrsys').hasChild('abc'))
+        self.assertEqual(tree.getChild('hmm???').getChild('ab').getChild('0002.fid').getChild('log').getValue()[0].time.year, 2009)
 
 
 def getSuite():
