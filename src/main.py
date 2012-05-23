@@ -1,7 +1,6 @@
 import sys
-import parse
-import model
-import analyze as an
+import analyze
+import yaml
 
 
 
@@ -12,19 +11,33 @@ def readFile(path):
     return c
 
 
+def output(st):
+#    outf = open(outpath, 'w')
+#    outf.write(outstring)
+#    outf.close()
+    print st
+
 
 def run():
     try:
+        # parse the cl args
         l = sys.argv
         _, outpath, inpaths = l[:2] + [l[2:]]
+
+        # read the files and build the tree
+        cs = {}
         for f in inpaths:
-            c = readFile(f)
-        outstring = parse(spectrometer, instring)
-        outf = open(outpath, 'w')
-        outf.write(outstring)
-        outf.close()
+            cs[f] = readFile(f)
+        tree = analyze.makeModel(cs)
+        analedTree = analyze.analyzeTree(tree)
+
+        # dump the tree ... somewhere
+        output(yaml.dump(analedTree.toJSON()))
+
+        output(analedTree.foldl(lambda x,y: [x.total_seconds()] + y, []))
+
     except ValueError, e:
-        print 'usage: program spectrometer infile outfile'
+        print 'usage: program outfile infile [infiles]'
         raise
 
 
