@@ -214,15 +214,19 @@ class AnalyzeTest(unittest.TestCase):
         r1, r2 = d(2012, 1, 1), d(2012, 5, 1, 0, 0, 0)
         e1, e2 = m.Event(d(2011, 2, 18), True), m.Event(d(2011, 12, 31), False)
 
+        # ends right before range
         exp1 = Experiment(e1, e2)
         self.assertEqual(filterByDate(exp1, r1, r2), None)
 
+        # ends right as range starts
         e2.time = d(2012, 1, 1)
         self.assertEqual(filterByDate(exp1, r1, r2), exp1)
 
+        # ends right as range ends
         e2.time = d(2012, 4, 30)
         self.assertEqual(filterByDate(exp1, r1, r2), exp1)
 
+        # ends right after range ends
         e2.time = d(2012, 5, 1)
         self.assertEqual(filterByDate(exp1, r1, r2), None)
 

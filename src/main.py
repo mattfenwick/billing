@@ -2,6 +2,7 @@ import sys
 import analyze
 import yaml
 import model
+import datetime
 
 
 
@@ -19,11 +20,20 @@ def output(st):
     print st
 
 
+def parseDate(d):
+    try:
+        fs = d.split('-')
+        return datetime.datetime(*map(int, fs))
+    except:
+        print "improperly formatted date: require 'yyyy-mm-dd'"
+        raise
+
+
 def run():
     try:
         # parse the cl args
         l = sys.argv
-        _, outpath, inpaths = l[:2] + [l[2:]]
+        _, start, stop, outpath, inpaths = l[:4] + [l[4:]]
 
         # read the files and build the tree
         cs = {}
@@ -31,23 +41,21 @@ def run():
             cs[f] = readFile(f)
 
         tree = analyze.makeModel(cs)
-        analedTree = analyze.analyzeTree(tree)
+        analedTree = analyze.analyzeTree(tree, parseDate(start), parseDate(stop))
 
-        # dump the tree ... somewhere
-#        output(yaml.dump(analedTree.toJSON()))
+        # extract just the seconds
+        secs = model.fmap(analedTree, lambda x: x.total_seconds())
 
-        con = model.addContext(analedTree.fmap(lambda x: x.total_seconds()))
+        con = model.addContext(secs)
 
-#        print yaml.dump(con.toJSON())
+        # sort by path
+        abc = sorted(model.foldl(con, lambda x,y: [x] + y, []), key = lambda x: x[1])
 
-        abc = sorted(con.foldl(lambda x,y: [x] + y, []), key = lambda x: x[1])
-
+        # remove those with a total of 0
         abcd = filter(lambda x: x[0] > 0, abc)
 
         for x in abcd:
             print x
-
-#        output()
 
     except ValueError, e:
         print 'usage: program outfile infile [infiles]'
