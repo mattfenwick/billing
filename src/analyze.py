@@ -85,6 +85,15 @@ def removeJunk(events):
         return events
 
 
+# since the beginning of 2012
+_startDate = datetime.datetime(2012, 1, 1, 0, 0, 0)
+# to the end of April 2012
+_stopDate = datetime.datetime(2012, 5, 1, 0, 0, 0)
+def filterDates(events):
+    '''[Event] -> [Event]'''
+    return filter(lambda event: event.time >= _startDate and event.time < _stopDate, events)
+
+
 def calculateInterval(events):
     '''(Datetime, Datetime) -> Interval'''
     if len(events) == 0:
@@ -106,10 +115,12 @@ def sumIntervals(intervals):
 
 
 def analyzeTree(tree):
-    '''Tree Event -> Tree Interval'''
+    '''Tree [Event] -> Tree Interval'''
+
+    t0 = tree.fmap(filterDates)
 
     # remove junk
-    t1 = tree.fmap(removeJunk)
+    t1 = t0.fmap(removeJunk)
 
     # Tree Event -> Tree timedelta
     t2 = t1.fmap(calculateInterval)
@@ -253,7 +264,7 @@ class BuildTest(unittest.TestCase):
         tree = makeModel(self.pathdict)
 #        print yaml.dump(tree.toJSON())
         self.assertTrue(tree.getChild('third').getChild('myname').getChild('vnmrsys').hasChild('abc'))
-        self.assertEqual(tree.getChild('hmm???').getChild('ab').getChild('0002.fid').getChild('log').getValue()[0].time.year, 2009)
+        self.assertEqual(tree.getChild('hmm???').getChild('ab').getChild('0002.fid').getValue()[0].time.year, 2009)
 
 
 def getSuite():

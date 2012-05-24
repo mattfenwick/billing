@@ -101,6 +101,17 @@ class Tree(object):
         return json.dumps(self.toJSON())
 
 
+def addContext(tree, context = []):
+    '''Tree a -> [String] -> Tree (a, [String])'''
+    newTree = Tree(None)
+    for key in tree.getChildren():
+        newContext = context + [key]
+        child = addContext(tree.getChild(key), newContext)
+        newTree.addChild(key, child)
+    newTree.setValue((tree.getValue(), context))
+    return newTree
+
+
 ##################################################################
 
 
@@ -174,6 +185,11 @@ class TreeTest(unittest.TestCase):
         newTree = t.fmap(len)
         self.assertEqual(newTree.getValue(), 11)
         self.assertEqual(newTree.getChild('me').getValue(), 13)
+
+    def testAddContext(self):
+        myTree = addContext(self.tree)
+        self.assertEqual((14, []), myTree.getValue())
+        self.assertEqual((-27, ['sub3']), myTree.getChild('sub3').getValue())
 
 
 def getSuite():

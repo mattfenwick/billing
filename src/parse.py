@@ -21,7 +21,7 @@ class ParsedLine(object):
 # 5: seconds
 # 6: year
 # 7: start/stop
-lineregex = re.compile("^(.+log):[a-zA-Z]{3} ([a-zA-Z]{3}) +(\d+) (\d{2}):(\d{2}):(\d{2}) (\d{4}): (Experiment started|Acquisition complete)$")
+lineregex = re.compile("^(.+)/log:[a-zA-Z]{3} ([a-zA-Z]{3}) +(\d+) (\d{2}):(\d{2}):(\d{2}) (\d{4}): (Experiment started|Acquisition complete)$")
 
 
 month2num = {
@@ -92,7 +92,7 @@ class ParseTest(unittest.TestCase):
     def testParseLine(self):
         l1 = parseLine(self.line1)
         l2 = parseLine(self.line2)
-        self.assertEqual(l1.path[-5:], "d/log")
+        self.assertEqual(l1.path[-5:], "1.fid")
         self.assertFalse(l1.isStart)
         self.assertEqual(l2.time.month, 5)
         self.assertTrue(l2.isStart)

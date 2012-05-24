@@ -1,6 +1,7 @@
 import sys
 import analyze
 import yaml
+import model
 
 
 
@@ -28,13 +29,25 @@ def run():
         cs = {}
         for f in inpaths:
             cs[f] = readFile(f)
+
         tree = analyze.makeModel(cs)
         analedTree = analyze.analyzeTree(tree)
 
         # dump the tree ... somewhere
-        output(yaml.dump(analedTree.toJSON()))
+#        output(yaml.dump(analedTree.toJSON()))
 
-        output(analedTree.foldl(lambda x,y: [x.total_seconds()] + y, []))
+        con = model.addContext(analedTree.fmap(lambda x: x.total_seconds()))
+
+#        print yaml.dump(con.toJSON())
+
+        abc = sorted(con.foldl(lambda x,y: [x] + y, []), key = lambda x: x[1])
+
+        abcd = filter(lambda x: x[0] > 0, abc)
+
+        for x in abcd:
+            print x
+
+#        output()
 
     except ValueError, e:
         print 'usage: program outfile infile [infiles]'
