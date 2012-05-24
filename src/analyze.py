@@ -70,6 +70,11 @@ def makeModel(files):
 
 ####################################################################################
 
+class Experiment(object):
+
+    def __init__(self, start, stop):
+        self.start = start
+        self.stop = stop
 
 
 def removeJunk(events):
@@ -85,23 +90,35 @@ def removeJunk(events):
         return events
 
 
-# since the beginning of 2012
-_startDate = datetime.datetime(2012, 1, 1, 0, 0, 0)
-# to the end of April 2012
-_stopDate = datetime.datetime(2012, 5, 1, 0, 0, 0)
-def filterDates(events):
-    '''[Event] -> [Event]'''
-    return filter(lambda event: event.time >= _startDate and event.time < _stopDate, events)
-
-
-def calculateInterval(events):
-    '''(Datetime, Datetime) -> Interval'''
+def orderEvents(events):
+    '''Maybe (Event, Event) -> Maybe Experiment'''
+    assert len(events) in [0, 2], "need exactly 2 events"
     if len(events) == 0:
-        return datetime.timedelta()
-    if events[0].isStart:
-        start, stop = events
+        return None
+    e1, e2 = events
+    assert e1.isStart != e2.isStart, "start AND stop required"
+    if e1.isStart:
+        return Experiment(e1, e2)
     else:
-        stop, start = events
+        return None
+
+
+def filterByDate(exp, startDate, stopDate):
+    '''Maybe Experiment -> Maybe Experiment'''
+    if exp is None:
+        return None
+    stop = exp.stop
+    if stop.time >= startDate and stop.time < stopDate:
+        return exp
+    else:
+        return None
+
+
+def calculateInterval(exp):
+    '''Maybe Experiment -> Interval'''
+    if exp is None:
+        return datetime.timedelta()
+    start, stop = exp.start, exp.stop
     assert stop.isStart != start.isStart, "must have exactly one start and one stop"
     return stop.time - start.time
 
@@ -114,24 +131,29 @@ def sumIntervals(intervals):
     return total
 
 
-def analyzeTree(tree):
-    '''Tree [Event] -> Tree Interval'''
+def analyzeTree(tree, startDate, stopDate):
+    '''Tree [Event] -> Tree timedelta'''
 
-    t0 = tree.fmap(filterDates)
+    # remove junk -- wrong number of events, and 2 starts/stops
+    #   :: Tree [Event]
+    t1 = m.fmap(tree, removeJunk)
 
-    # remove junk
-    t1 = t0.fmap(removeJunk)
+    # put events in order
+    #   :: Tree (Maybe Experiment)
+    t2 = m.fmap(t1, orderEvents)
 
-    # Tree Event -> Tree timedelta
-    t2 = t1.fmap(calculateInterval)
+    # remove event pairs outside the date range
+    #   :: Tree (Maybe Experiment)
+    t3 = m.fmap(t2, lambda events: filterByDate(events, startDate, stopDate)) 
+
+    # Tree (Maybe Experiment) -> Tree timedelta
+    #   :: Tree timedelta
+    t4 = m.fmap(t3, calculateInterval) 
 
     # sum subtrees: Tree timedelta -> Tree timedelta
-    t3 = t2.applySubTree(sumIntervals)
+    t5 = m.applySubTree(t4, sumIntervals)
 
-#    q = lambda xs: [{'time': str(x.time), 'isStart': x.isStart} for x in xs]
-#    print yaml.dump(tree.fmap(q).toJSON()), '\n', yaml.dump(t1.fmap(q).toJSON()), '\n', yaml.dump(t2.fmap(lambda x: x.total_seconds()).toJSON()), '\n', yaml.dump(t3.fmap(lambda x: x.total_seconds()).toJSON())
-
-    return t3
+    return t5
 
 
 ####################################################################################
@@ -180,11 +202,34 @@ class AnalyzeTest(unittest.TestCase):
         # case 3:  acceptable
         self.assertEqual(e4, removeJunk(e4))
 
+    def testOrderEvents(self):
+        d = self.d
+        e1, e2 = m.Event(d(2012, 3, 11), True), m.Event(d(2012, 4, 1), False)
+        exp1, exp2 = orderEvents([e1, e2]), orderEvents([e2, e1])
+        self.assertEqual([e1, e2], [exp1.start, exp1.stop])
+        self.assertEqual([e1, e2], [exp1.start, exp1.stop])
+
+    def testFilterByDate(self):
+        d = self.d
+        r1, r2 = d(2012, 1, 1), d(2012, 5, 1, 0, 0, 0)
+        e1, e2 = m.Event(d(2011, 2, 18), True), m.Event(d(2011, 12, 31), False)
+
+        exp1 = Experiment(e1, e2)
+        self.assertEqual(filterByDate(exp1, r1, r2), None)
+
+        e2.time = d(2012, 1, 1)
+        self.assertEqual(filterByDate(exp1, r1, r2), exp1)
+
+        e2.time = d(2012, 4, 30)
+        self.assertEqual(filterByDate(exp1, r1, r2), exp1)
+
+        e2.time = d(2012, 5, 1)
+        self.assertEqual(filterByDate(exp1, r1, r2), None)
+
     def testCalculateInterval(self):
-        i = calculateInterval([
-            m.Event(self.d(2012, 4, 1, 10, 0, 0), False),
-            m.Event(self.d(2012, 4, 1, 8, 0, 0), True)
-        ])
+        stop = m.Event(self.d(2012, 4, 1, 10, 0, 0), False)
+        start = m.Event(self.d(2012, 4, 1, 8, 0, 0), True)
+        i = calculateInterval(Experiment(start, stop))
         self.assertEqual(i.total_seconds(), 7200)
 
     def testSumIntervals(self):
@@ -194,10 +239,10 @@ class AnalyzeTest(unittest.TestCase):
         self.assertEqual(total.total_seconds(), 800000)
 
     def testAnalyzeTree(self):
-        subtree = analyzeTree(self.subtimetree)
+        subtree = analyzeTree(self.subtimetree, self.d(2009, 8, 11), self.d(2013, 12, 2))
         self.assertEqual(subtree.getValue(), datetime.timedelta(2))
 
-        tree = analyzeTree(self.timetree)
+        tree = analyzeTree(self.timetree, self.d(2009, 8, 11), self.d(2013, 12, 2))
         i = tree.getValue()
         self.assertEqual(i.days, 2)
         self.assertEqual(i.total_seconds(), 3600 + 240 + 27 + 3600 * 48)
