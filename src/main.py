@@ -29,37 +29,50 @@ def parseDate(d):
         raise
 
 
+def doAnalysis(start, stop, outpath, inpaths):
+
+    # read the files and build the tree
+    cs = {}
+    for f in inpaths:
+        cs[f] = readFile(f)
+
+    tree = analyze.makeModel(cs)
+    analedTree = analyze.analyzeTree(tree, parseDate(start), parseDate(stop))
+
+    # extract just the seconds
+    secs = model.fmap(analedTree, lambda x: x.total_seconds())
+
+    con = model.addContext(secs)
+
+    # sort by path
+    abc = sorted(model.foldl(con, lambda x,y: [x] + y, []), key = lambda x: x[1])
+
+    # remove those with a total of 0
+    abcd = filter(lambda x: x[0] > 0, abc)
+
+    for x in abcd:
+        print x
+
+
+def printHelp():
+    print 'usage: program startdate enddate outfile infile [infiles]', '\n'
+
+
 def run():
+    l = sys.argv
+
+    if l[1] == '-h':
+        printHelp()
+        return None
+
+    # parse the cl args
     try:
-        # parse the cl args
-        l = sys.argv
         _, start, stop, outpath, inpaths = l[:4] + [l[4:]]
-
-        # read the files and build the tree
-        cs = {}
-        for f in inpaths:
-            cs[f] = readFile(f)
-
-        tree = analyze.makeModel(cs)
-        analedTree = analyze.analyzeTree(tree, parseDate(start), parseDate(stop))
-
-        # extract just the seconds
-        secs = model.fmap(analedTree, lambda x: x.total_seconds())
-
-        con = model.addContext(secs)
-
-        # sort by path
-        abc = sorted(model.foldl(con, lambda x,y: [x] + y, []), key = lambda x: x[1])
-
-        # remove those with a total of 0
-        abcd = filter(lambda x: x[0] > 0, abc)
-
-        for x in abcd:
-            print x
-
     except ValueError, e:
-        print 'usage: program outfile infile [infiles]'
+        printHelp()
         raise
+
+    doAnalysis(start, stop, outpath, inpaths)
 
 
 if __name__ == "__main__":
