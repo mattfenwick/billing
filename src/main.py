@@ -51,7 +51,8 @@ def doAnalysis(start, stop, outpath, inpaths):
     abcd = filter(lambda x: x[0] > 0, abc)
 
     for x in abcd:
-        print x
+        amt = x[0] / 3600
+        print '%10.2f' % amt, '   ', ''.join(x[1])
 
 
 def printHelp():
