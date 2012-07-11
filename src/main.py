@@ -3,6 +3,12 @@ import analyze
 import yaml
 import model
 import datetime
+import logging
+
+
+LOG_FILENAME = "log.txt"
+
+logging.basicConfig(filename = LOG_FILENAME, level = logging.DEBUG, filemode = 'w')
 
 
 
@@ -52,7 +58,7 @@ def doAnalysis(start, stop, outpath, inpaths):
 
     for x in abcd:
         amt = x[0] / 3600
-        print '%10.2f' % amt, '   ', ''.join(x[1])
+        print '%10.2f' % amt, '   ', '/'.join(x[1])
 
 
 def printHelp():
