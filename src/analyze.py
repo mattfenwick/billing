@@ -6,6 +6,7 @@ import datetime
 # just for ???
 import yaml
 import parse
+import json
 
 
 myLogger = logging.getLogger('analyze')
@@ -80,13 +81,13 @@ class Experiment(object):
 def removeJunk(events):
     '''[Event] -> [Event]'''
     if len(events) != 2:
-        myLogger.info('removing events: <%s>' % str(events))
+        myLogger.info('removing events -- size != 2: <%s>' % json.dumps([e.toJSON() for e in events]))
         return []
     elif events[0].isStart == events[1].isStart:
-        myLogger.info('removing events: <%s>' % str(events))
+        myLogger.info('removing events -- two starts: <%s>' % str(events))
         return []
     else:
-        myLogger.info('keeping events: <%s>' % str(events))
+        myLogger.debug('keeping events: <%s>' % str(events))
         return events
 
 

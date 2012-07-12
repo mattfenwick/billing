@@ -8,6 +8,13 @@ class Event(object):
     def __init__(self, time, isStart):
         self.time = time
         self.isStart = isStart
+        
+    def toJSON(self):
+        '''Event -> JSONObject'''
+        return {
+            'time': str(self.time),
+            'isStart': self.isStart
+        }
 
 
 class Tree(object):
