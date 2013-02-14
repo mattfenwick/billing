@@ -3,8 +3,6 @@ import model as m
 import re
 import logging
 import datetime
-# just for ???
-import yaml
 import parse
 import json
 
@@ -312,7 +310,6 @@ class BuildTest(unittest.TestCase):
 
     def testBuildModel(self):
         tree = makeModel(self.pathdict)
-#        print yaml.dump(tree.toJSON())
         self.assertTrue(tree.getChild('third').getChild('myname').getChild('vnmrsys').hasChild('abc'))
         self.assertEqual(tree.getChild('hmm???').getChild('ab').getChild('0002.fid').getValue()[0].time.year, 2009)
 

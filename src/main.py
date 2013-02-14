@@ -1,6 +1,5 @@
 import sys
 import analyze
-import yaml
 import model
 import datetime
 import logging
